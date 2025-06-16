@@ -36,7 +36,7 @@ class RepositoryService {
         process.currentDirectoryURL = directory
 
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = ["clone", "--mirror", repoURL]
+        process.arguments = ["clone", repoURL]
 
         try process.run()
         process.waitUntilExit()
@@ -386,10 +386,10 @@ class RepositoryService {
             } else {
                 ownerDir = baseDirectory.appendingPathComponent(repo.owner, isDirectory: true)
             }
-            let repoDir = ownerDir.appendingPathComponent(repo.name.hasSuffix(".git") ? repo.name : repo.name + ".git", isDirectory: true)
+            let repoDir = ownerDir.appendingPathComponent(repo.name, isDirectory: true)
             try? fileManager.createDirectory(at: ownerDir, withIntermediateDirectories: true)
             if fileManager.fileExists(atPath: repoDir.path) {
-                // Update existing mirror repo
+                // Update existing repo (git pull)
                 progress?("Fetching updates for \(repo.owner)/\(repo.name)...")
                 let process = Process()
                 let pipe = Pipe()
@@ -397,19 +397,19 @@ class RepositoryService {
                 process.standardError = pipe
                 process.currentDirectoryURL = repoDir
                 process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-                process.arguments = ["fetch", "--all"]
+                process.arguments = ["pull"]
                 try process.run()
                 process.waitUntilExit()
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 let output = String(data: data, encoding: .utf8) ?? ""
                 if process.terminationStatus != 0 {
-                    progress?("❌ Fetch failed for \(repo.owner)/\(repo.name):\n" + output)
-                    throw RepositoryError.cloningFailedWithMessage("Fetch failed for \(repo.owner)/\(repo.name):\n" + output)
+                    progress?("❌ Pull failed for \(repo.owner)/\(repo.name):\n" + output)
+                    throw RepositoryError.cloningFailedWithMessage("Pull failed for \(repo.owner)/\(repo.name):\n" + output)
                 } else {
                     progress?("✅ Обновлено: \(repo.owner)/\(repo.name)")
                 }
             } else {
-                // Clone new mirror repo
+                // Clone new repo
                 progress?("Cloning \(repo.owner)/\(repo.name)...")
                 let process = Process()
                 let pipe = Pipe()
@@ -427,8 +427,7 @@ class RepositoryService {
                         cloneURL = "https://\(profile.token)@\(urlWithoutScheme)"
                     }
                 }
-                let repoFolderName = repo.name.hasSuffix(".git") ? repo.name : repo.name + ".git"
-                process.arguments = ["clone", "--mirror", cloneURL, repoFolderName]
+                process.arguments = ["clone", cloneURL, repo.name]
                 try process.run()
                 process.waitUntilExit()
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()

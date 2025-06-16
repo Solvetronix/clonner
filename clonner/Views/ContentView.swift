@@ -96,7 +96,7 @@ struct ListPanel: View {
             }
             .frame(minHeight: 200)
         }
-        .navigationTitle("Repository Profiles")
+        .navigationTitle("clonner 1.0")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: { showingAddProfile = true }) {
