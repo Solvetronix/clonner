@@ -55,11 +55,13 @@ struct ListPanel: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer()
-                Button("Choose Folder") {
-                    viewModel.pickCloneDirectory()
+                Button(action: { viewModel.pickCloneDirectory() }) {
+                    Image(systemName: "folder")
                 }
             }
-            .padding([.top, .horizontal])
+            .padding(.top, 5)
+            .padding(.horizontal)
+            .padding(.bottom, 10)
             Table(viewModel.profiles) {
                 TableColumn("Type") { profile in
                     HStack {
@@ -119,9 +121,6 @@ struct MainLogPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Operation Log:")
-                    .font(.headline)
-                Spacer()
                 Button(action: {
                     let logText = viewModel.cloneLog.joined(separator: "\n")
                     #if os(macOS)
@@ -147,6 +146,7 @@ struct MainLogPanel: View {
             }
             .padding(.horizontal)
             .padding(.top, 8)
+            .padding(.bottom, 8)
             Divider()
             ScrollViewReader { proxy in
                 ScrollView {
