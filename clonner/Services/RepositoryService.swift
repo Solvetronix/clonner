@@ -363,33 +363,35 @@ class RepositoryService {
         return allGroups
     }
 
-    static func cloneOrUpdateAllRepositories(for profile: Profile, to baseDirectory: URL, progress: ((String) -> Void)? = nil) async throws {
-        let repos = try await getRepositories(for: profile, progress: progress)
-        let fileManager = FileManager.default
-        let isGitLab = profile.type == .gitlab
-        // For GitLab, extract domain for top-level folder
-        var domainFolder: String? = nil
-        if isGitLab {
-            if let url = URL(string: profile.url), let host = url.host {
-                domainFolder = host
-            } else if let range = profile.url.range(of: "://") {
-                // fallback: remove scheme manually
-                let noScheme = profile.url[range.upperBound...]
-                domainFolder = noScheme.split(separator: "/").first.map { String($0) }
-            }
+  static func cloneOrUpdateAllRepositories(for profile: Profile, to baseDirectory: URL, progress: ((String) -> Void)? = nil) async throws {
+    let repos = try await getRepositories(for: profile, progress: progress)
+    let fileManager = FileManager.default
+    let isGitLab = profile.type == .gitlab
+    var domainFolder: String? = nil
+    if isGitLab {
+        if let url = URL(string: profile.url), let host = url.host {
+            domainFolder = host
+        } else if let range = profile.url.range(of: "://") {
+            let noScheme = profile.url[range.upperBound...]
+            domainFolder = noScheme.split(separator: "/").first.map { String($0) }
         }
-        for repo in repos {
-            let ownerDir: URL
-            if let domain = domainFolder {
-                ownerDir = baseDirectory.appendingPathComponent(domain, isDirectory: true)
-                    .appendingPathComponent(repo.owner, isDirectory: true)
-            } else {
-                ownerDir = baseDirectory.appendingPathComponent(repo.owner, isDirectory: true)
-            }
-            let repoDir = ownerDir.appendingPathComponent(repo.name, isDirectory: true)
-            try? fileManager.createDirectory(at: ownerDir, withIntermediateDirectories: true)
+    }
+
+    for repo in repos {
+        let ownerDir: URL
+        if let domain = domainFolder {
+            ownerDir = baseDirectory.appendingPathComponent(domain, isDirectory: true)
+                                  .appendingPathComponent(repo.owner, isDirectory: true)
+        } else {
+            ownerDir = baseDirectory.appendingPathComponent(repo.owner, isDirectory: true)
+        }
+        let repoDir = ownerDir.appendingPathComponent(repo.name, isDirectory: true)
+        try? fileManager.createDirectory(at: ownerDir, withIntermediateDirectories: true)
+
+        // Оборачиваем каждую операцию в do-catch, чтобы при ошибке не прекращать цикл
+        do {
             if fileManager.fileExists(atPath: repoDir.path) {
-                // Update existing repo (git pull)
+                // Pull updates
                 progress?("Fetching updates for \(repo.owner)/\(repo.name)...")
                 let process = Process()
                 let pipe = Pipe()
@@ -403,13 +405,13 @@ class RepositoryService {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 let output = String(data: data, encoding: .utf8) ?? ""
                 if process.terminationStatus != 0 {
-                    progress?("❌ Pull failed for \(repo.owner)/\(repo.name):\n" + output)
-                    throw RepositoryError.cloningFailedWithMessage("Pull failed for \(repo.owner)/\(repo.name):\n" + output)
+                    // Логируем ошибку, но не выбрасываем
+                    progress?("❌ Pull failed for \(repo.owner)/\(repo.name):\n\(output)")
                 } else {
                     progress?("✅ Обновлено: \(repo.owner)/\(repo.name)")
                 }
             } else {
-                // Clone new repo
+                // Clone repo
                 progress?("Cloning \(repo.owner)/\(repo.name)...")
                 let process = Process()
                 let pipe = Pipe()
@@ -418,7 +420,6 @@ class RepositoryService {
                 process.currentDirectoryURL = ownerDir
                 process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
                 var cloneURL = repo.cloneURL
-                // Вставляем токен для приватных репозиториев
                 if profile.token != "" && cloneURL.hasPrefix("https://") {
                     let urlWithoutScheme = cloneURL.dropFirst("https://".count)
                     if profile.type == .gitlab, let username = profile.username, !username.isEmpty {
@@ -433,12 +434,16 @@ class RepositoryService {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 let output = String(data: data, encoding: .utf8) ?? ""
                 if process.terminationStatus != 0 {
-                    progress?("❌ Clone failed for \(repo.owner)/\(repo.name):\n" + output)
-                    throw RepositoryError.cloningFailedWithMessage("Clone failed for \(repo.owner)/\(repo.name):\n" + output)
+                    progress?("❌ Clone failed for \(repo.owner)/\(repo.name):\n\(output)")
                 } else {
                     progress?("✅ Склонировано: \(repo.owner)/\(repo.name)")
                 }
             }
+        } catch {
+            // На случай неожиданных ошибок (например, не удалось запустить git)
+            progress?("⚠️ Неожиданная ошибка при обработке \(repo.owner)/\(repo.name): \(error)")
         }
     }
+}
+
 } 
