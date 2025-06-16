@@ -1,53 +1,53 @@
 # Clonner
 
-Clonner - это macOS приложение для удобного управления и клонирования Git репозиториев. Приложение позволяет создавать профили для различных типов репозиториев и легко клонировать или обновлять их.
+Clonner is a macOS application for convenient management and cloning of Git repositories. The app allows you to create profiles for different repository types and easily clone or update them.
 
-## Возможности
+## Features
 
-- Создание профилей для различных типов репозиториев (GitHub, GitLab и др.)
-- Выбор папки для клонирования репозиториев
-- Клонирование и обновление репозиториев
-- Просмотр лога операций
-- Удобный пользовательский интерфейс
+- Create profiles for different repository types (GitHub, GitLab, etc.)
+- Choose a folder for cloning repositories
+- Clone and update repositories
+- View operation log
+- User-friendly interface
 
-## Требования
+## Requirements
 
-- macOS 14.0 или новее
-- Xcode 15.0 или новее (для сборки из исходного кода)
+- macOS 14.0 or newer
+- Xcode 15.0 or newer (for building from source)
 
-## Установка
+## Installation
 
-1. Скачайте последнюю версию приложения из раздела [Releases](https://github.com/yourusername/clonner/releases)
-2. Откройте файл `clonner.dmg`
-3. Перетащите приложение Clonner в папку Applications
-4. При первом запуске приложения macOS может показать предупреждение о безопасности. В этом случае:
-   - Откройте System Settings (Системные настройки)
-   - Перейдите в Security & Privacy (Безопасность и конфиденциальность)
-   - Нажмите "Open Anyway" (Все равно открыть) для приложения Clonner
+1. Download the latest version of the app from the [Releases](https://github.com/yourusername/clonner/releases) section
+2. Open the `clonner.dmg` file
+3. Drag the Clonner app to the Applications folder
+4. On first launch, macOS may show a security warning. In this case:
+   - Open System Settings
+   - Go to Security & Privacy
+   - Click "Open Anyway" for the Clonner app
 
-## Сборка из исходного кода
+## Building from Source
 
-1. Клонируйте репозиторий:
+1. Clone the repository:
 ```bash
 git clone https://github.com/yourusername/clonner.git
 ```
 
-2. Откройте проект в Xcode:
+2. Open the project in Xcode:
 ```bash
 cd clonner
 open clonner.xcodeproj
 ```
 
-3. Соберите проект (⌘B) или запустите его (⌘R)
+3. Build (⌘B) or run (⌘R) the project
 
-## Использование
+## Usage
 
-1. Запустите приложение Clonner
-2. Нажмите "Выбрать папку" для указания директории, куда будут клонироваться репозитории
-3. Создайте новый профиль, нажав кнопку "+"
-4. Заполните информацию о профиле (тип, имя и т.д.)
-5. Используйте меню действий (три точки) для клонирования или обновления репозиториев
+1. Launch the Clonner app
+2. Click "Choose Folder" to select the directory where repositories will be cloned
+3. Create a new profile by clicking the "+" button
+4. Fill in the profile information (type, name, etc.)
+5. Use the actions menu (three dots) to clone or update repositories
 
-## Лицензия
+## License
 
-MIT License. См. файл [LICENSE](LICENSE) для подробностей. 
+MIT License. See the [LICENSE](LICENSE) file for details. 

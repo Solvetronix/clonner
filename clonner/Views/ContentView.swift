@@ -20,7 +20,7 @@ struct ContentView: View {
                     ProgressView()
                         .scaleEffect(1.4)
                         .padding(.bottom, 2)
-                    Text("Клонирование в процессе...")
+                    Text("Cloning in progress...")
                         .font(.title3.bold())
                         .padding(.bottom, 2)
                     if let msg = viewModel.progressMessage {
@@ -48,31 +48,31 @@ struct ListPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Папка:")
+                Text("Folder:")
                 Text(viewModel.cloneDirectory.path)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer()
-                Button("Выбрать папку") {
+                Button("Choose Folder") {
                     viewModel.pickCloneDirectory()
                 }
             }
             .padding([.top, .horizontal])
             Table(viewModel.profiles) {
-                TableColumn("Тип") { profile in
+                TableColumn("Type") { profile in
                     HStack {
                         Image(systemName: profile.type == .github ? "chevron.left.slash.chevron.right" : "cube.box")
                             .foregroundColor(profile.type == .github ? .blue : .orange)
                         Text(profile.type.rawValue)
                     }
                 }
-                TableColumn("Имя") { profile in
+                TableColumn("Name") { profile in
                     Text(profile.name)
                         .font(.headline)
                 }
-                TableColumn("Последнее сканирование") { profile in
+                TableColumn("Last Scan") { profile in
                     if let date = profile.lastScanDate {
                         Text(date, style: .date)
                             + Text(" ") + Text(date, style: .time)
@@ -84,7 +84,7 @@ struct ListPanel: View {
                     Menu {
                         Button("Edit") { selectedProfile = profile }
                         Button("Delete", role: .destructive) { viewModel.deleteProfile(profile) }
-                        Button("Клонировать/Обновить все репозитории") {
+                        Button("Clone/Update All Repositories") {
                             Task { await viewModel.cloneOrUpdateAllRepositories(for: profile) }
                         }
                     } label: {
@@ -119,7 +119,7 @@ struct MainLogPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Лог операций:")
+                Text("Operation Log:")
                     .font(.headline)
                 Spacer()
                 Button(action: {
@@ -134,8 +134,8 @@ struct MainLogPanel: View {
                 }) {
                     Image(systemName: "doc.on.doc")
                 }
-                .help("Скопировать весь лог в буфер обмена")
-                .alert("Лог скопирован", isPresented: $showCopyAlert) {
+                .help("Copy all log to clipboard")
+                .alert("Log copied", isPresented: $showCopyAlert) {
                     Button("OK", role: .cancel) {}
                 }
                 Button(action: {
@@ -143,7 +143,7 @@ struct MainLogPanel: View {
                 }) {
                     Image(systemName: "trash")
                 }
-                .help("Очистить лог операций")
+                .help("Clear operation log")
             }
             .padding(.horizontal)
             .padding(.top, 8)

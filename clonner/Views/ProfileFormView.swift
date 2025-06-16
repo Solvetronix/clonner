@@ -57,7 +57,7 @@ struct ProfileFormView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
                     HStack {
-                        Text("Метод поиска").frame(width: 70, alignment: .leading)
+                        Text("Fetch Mode").frame(width: 70, alignment: .leading)
                         Picker("", selection: $gitlabFetchMode) {
                             ForEach(GitLabFetchMode.allCases) { mode in
                                 Text(mode.rawValue).tag(mode)

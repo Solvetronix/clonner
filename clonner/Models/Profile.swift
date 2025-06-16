@@ -1,8 +1,8 @@
 import Foundation
 
 enum GitLabFetchMode: String, Codable, CaseIterable, Identifiable {
-    case recursive = "Рекурсивный (include_subgroups)"
-    case bashStyle = "Bash-style (по всем группам)"
+    case recursive = "Recursive (include_subgroups)"
+    case bashStyle = "Bash-style (all groups)"
     var id: String { self.rawValue }
 }
 
