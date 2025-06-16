@@ -187,9 +187,10 @@
 				};
 			};
 			buildConfigurationList = 0A3B4FB72DFF5F8300CC5B2C /* Build configuration list for PBXProject "clonner" */;
-			developmentRegion = en;
+			developmentRegion = ru;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				ru,
 				en,
 				Base,
 			);
