@@ -321,7 +321,13 @@ class RepositoryService {
     var errorRepos = 0
 
     // Создаем основную директорию профиля
-    let profileDir = baseDirectory.appendingPathComponent(profile.name, isDirectory: true)
+    let accountName: String
+    if let url = URL(string: profile.url) {
+        accountName = url.pathComponents.last ?? profile.name
+    } else {
+        accountName = profile.name
+    }
+    let profileDir = baseDirectory.appendingPathComponent(accountName, isDirectory: true)
     try? fileManager.createDirectory(at: profileDir, withIntermediateDirectories: true)
 
     if isGitLab {
@@ -336,17 +342,18 @@ class RepositoryService {
     for repo in repos {
         // Определяем тип репозитория и создаем соответствующую структуру папок
         let repoDir: URL
-        if repo.owner == profile.name {
-            // Если репозиторий принадлежит профилю, кладем его в корневую папку профиля
+        if repo.owner == accountName {
+            // Личные репозитории — прямо в папку профиля
             repoDir = profileDir.appendingPathComponent(repo.name, isDirectory: true)
         } else if repo.owner.contains("/") {
-            // Если это форк (содержит / в имени владельца)
+            // Форки — в FORKS
             let forksDir = profileDir.appendingPathComponent("FORKS", isDirectory: true)
             try? fileManager.createDirectory(at: forksDir, withIntermediateDirectories: true)
             repoDir = forksDir.appendingPathComponent(repo.name, isDirectory: true)
         } else {
-            // Если это организация, создаем папку с именем организации
-            let orgDir = profileDir.appendingPathComponent(repo.owner, isDirectory: true)
+            // Организации — в папку organisations/[OrganizationName]
+            let orgsRootDir = profileDir.appendingPathComponent("organisations", isDirectory: true)
+            let orgDir = orgsRootDir.appendingPathComponent(repo.owner, isDirectory: true)
             try? fileManager.createDirectory(at: orgDir, withIntermediateDirectories: true)
             repoDir = orgDir.appendingPathComponent(repo.name, isDirectory: true)
         }
