@@ -322,12 +322,17 @@ class RepositoryService {
 
     // Create main profile directory
     let accountName: String
-    if let url = URL(string: profile.url) {
+    let profileDir: URL
+    if profile.type == .gitlab, let url = URL(string: profile.url), let host = url.host {
+        accountName = host
+        profileDir = baseDirectory.appendingPathComponent(accountName, isDirectory: true)
+    } else if let url = URL(string: profile.url) {
         accountName = url.pathComponents.last ?? profile.name
+        profileDir = baseDirectory.appendingPathComponent(accountName, isDirectory: true)
     } else {
         accountName = profile.name
+        profileDir = baseDirectory.appendingPathComponent(accountName, isDirectory: true)
     }
-    let profileDir = baseDirectory.appendingPathComponent(accountName, isDirectory: true)
     try? fileManager.createDirectory(at: profileDir, withIntermediateDirectories: true)
 
     if isGitLab {
@@ -340,24 +345,33 @@ class RepositoryService {
     }
 
     for repo in repos {
-        // Determine repository type and create the appropriate folder structure
         let repoDir: URL
-        if repo.owner == accountName {
-            // Personal repositories — in personal folder
-            let personalDir = profileDir.appendingPathComponent("personal", isDirectory: true)
-            try? fileManager.createDirectory(at: personalDir, withIntermediateDirectories: true)
-            repoDir = personalDir.appendingPathComponent(repo.name, isDirectory: true)
-        } else if repo.owner.contains("/") {
-            // Forks — in forks
-            let forksDir = profileDir.appendingPathComponent("forks", isDirectory: true)
-            try? fileManager.createDirectory(at: forksDir, withIntermediateDirectories: true)
-            repoDir = forksDir.appendingPathComponent(repo.name, isDirectory: true)
+        if isGitLab {
+            // For GitLab: [domain]/[namespace]/[repo]
+            let namespacePath = repo.owner.split(separator: "/").reduce(profileDir) { partialResult, component in
+                partialResult.appendingPathComponent(String(component), isDirectory: true)
+            }
+            try? fileManager.createDirectory(at: namespacePath, withIntermediateDirectories: true)
+            repoDir = namespacePath.appendingPathComponent(repo.name, isDirectory: true)
         } else {
-            // Organizations — in organisations/[OrganizationName]
-            let orgsRootDir = profileDir.appendingPathComponent("organisations", isDirectory: true)
-            let orgDir = orgsRootDir.appendingPathComponent(repo.owner, isDirectory: true)
-            try? fileManager.createDirectory(at: orgDir, withIntermediateDirectories: true)
-            repoDir = orgDir.appendingPathComponent(repo.name, isDirectory: true)
+            // For GitHub: use personal, forks, organisations
+            if repo.owner == accountName {
+                // Personal repositories — in personal folder
+                let personalDir = profileDir.appendingPathComponent("personal", isDirectory: true)
+                try? fileManager.createDirectory(at: personalDir, withIntermediateDirectories: true)
+                repoDir = personalDir.appendingPathComponent(repo.name, isDirectory: true)
+            } else if repo.owner.contains("/") {
+                // Forks — in forks
+                let forksDir = profileDir.appendingPathComponent("forks", isDirectory: true)
+                try? fileManager.createDirectory(at: forksDir, withIntermediateDirectories: true)
+                repoDir = forksDir.appendingPathComponent(repo.name, isDirectory: true)
+            } else {
+                // Organizations — in organisations/[OrganizationName]
+                let orgsRootDir = profileDir.appendingPathComponent("organisations", isDirectory: true)
+                let orgDir = orgsRootDir.appendingPathComponent(repo.owner, isDirectory: true)
+                try? fileManager.createDirectory(at: orgDir, withIntermediateDirectories: true)
+                repoDir = orgDir.appendingPathComponent(repo.name, isDirectory: true)
+            }
         }
 
         // Wrap each operation in do-catch so that errors do not stop the loop
