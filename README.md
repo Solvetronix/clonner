@@ -25,6 +25,29 @@ Clonner is a macOS application for convenient management and cloning of Git repo
    - Go to Security & Privacy
    - Click "Open Anyway" for the Clonner app
 
+### Manual Build and Install (Terminal)
+
+If you want to build and install the app manually from source, follow these steps:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/clonner.git
+   cd clonner
+   ```
+2. Build the app using Xcode command line tools:
+   ```bash
+   xcodebuild -scheme clonner -configuration Release -derivedDataPath build
+   ```
+3. Install the app to the Applications folder:
+   ```bash
+   cp -R build/Build/Products/Release/clonner.app /Applications/
+   ```
+4. (Optional) Remove build artifacts if you no longer need them:
+   ```bash
+   rm -rf build
+   ```
+5. Launch Clonner from the Applications folder as a regular macOS app.
+
 ## Building from Source
 
 1. Clone the repository:
