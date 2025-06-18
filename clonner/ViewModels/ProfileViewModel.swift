@@ -65,17 +65,17 @@ class ProfileViewModel: ObservableObject {
         do {
             try await RepositoryService.cloneRepositories(for: profile, to: cloneDirectory)
             await MainActor.run {
-                self.cloneLog.append("✅ Репозиторий успешно склонирован: \(profile.url)")
+                self.cloneLog.append("✅ Repository successfully cloned: \(profile.url)")
             }
         } catch let RepositoryError.cloningFailedWithMessage(message) {
             await MainActor.run {
                 self.cloningError = message
-                self.cloneLog.append("❌ Ошибка клонирования: \(message)")
+                self.cloneLog.append("❌ Cloning error: \(message)")
             }
         } catch {
             await MainActor.run {
                 self.cloningError = error.localizedDescription
-                self.cloneLog.append("❌ Ошибка клонирования: \(error.localizedDescription)")
+                self.cloneLog.append("❌ Cloning error: \(error.localizedDescription)")
             }
         }
         await MainActor.run {
@@ -107,7 +107,7 @@ class ProfileViewModel: ObservableObject {
                     self.saveProfiles()
                 }
                 if clonedCount == 0 {
-                    let warnMsg = "⚠️ Не было склонировано ни одного репозитория. Проверьте токен и права доступа."
+                    let warnMsg = "⚠️ No repositories were cloned. Please check your token and access rights."
                     self.progressMessage = warnMsg
                     self.cloneLog.append(warnMsg)
                 } else {
@@ -120,13 +120,13 @@ class ProfileViewModel: ObservableObject {
         } catch let RepositoryError.cloningFailedWithMessage(message) {
             await MainActor.run {
                 self.cloningError = message
-                self.cloneLog.append("❌ Ошибка: \(message)")
+                self.cloneLog.append("❌ Error: \(message)")
                 self.isCloning = false
             }
         } catch {
             await MainActor.run {
                 self.cloningError = error.localizedDescription
-                self.cloneLog.append("❌ Ошибка: \(error.localizedDescription)")
+                self.cloneLog.append("❌ Error: \(error.localizedDescription)")
                 self.isCloning = false
             }
         }

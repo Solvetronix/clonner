@@ -21,7 +21,7 @@ class RepositoryService {
         process.standardOutput = pipe
         process.standardError = pipe
 
-        // Формируем URL с токеном для приватных репозиториев
+        // Form URL with token for private repositories
         var repoURL = profile.url
         if profile.token != "" {
             if repoURL.hasPrefix("https://") {
@@ -30,7 +30,7 @@ class RepositoryService {
             }
         }
 
-        // Создаём директорию, если её нет
+        // Create directory if it does not exist
         let fileManager = FileManager.default
         try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         process.currentDirectoryURL = directory
@@ -156,14 +156,14 @@ class RepositoryService {
     }
 
     // MARK: - GitLab
-    // Рекурсивный способ (include_subgroups)
+    // Recursive method (include_subgroups)
     private static func fetchGitLabRepos_recursive(token: String, progress: ((String) -> Void)? = nil, baseURL: String, totalCount: inout Int) async throws -> [RepoInfo] {
         var repos: [RepoInfo] = []
         let session = URLSession.shared
         let trimmedBase = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
         let apiURL = trimmedBase + "/api/v4"
         
-        // Получаем все проекты с include_subgroups=true
+        // Get all projects with include_subgroups=true
         var projectsURL = URL(string: "\(apiURL)/projects?per_page=100&include_subgroups=true")!
         var page = 1
         
@@ -198,14 +198,14 @@ class RepositoryService {
         return repos
     }
 
-    // Bash-style способ (по всем группам)
+    // Bash-style method (all groups)
     private static func fetchGitLabRepos_bashStyle(token: String, progress: ((String) -> Void)? = nil, baseURL: String, totalCount: inout Int) async throws -> [RepoInfo] {
         var repos: [RepoInfo] = []
         let session = URLSession.shared
         let trimmedBase = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
         let apiURL = trimmedBase + "/api/v4"
         
-        // Получаем все группы
+        // Get all groups
         let allGroups = try await fetchAllGitLabGroups(token: token, apiURL: apiURL, progress: progress)
         for group in allGroups {
             guard let groupId = group["id"] as? Int else { continue }
@@ -244,7 +244,7 @@ class RepositoryService {
         var allGroups: [[String: Any]] = []
         let session = URLSession.shared
         
-        // Сначала получаем все группы верхнего уровня
+        // First, get all top-level groups
         var groupsURL = URL(string: "\(apiURL)/groups?per_page=100")!
         var page = 1
         
@@ -272,7 +272,7 @@ class RepositoryService {
             groupsURL = URL(string: "\(apiURL)/groups?per_page=100&page=\(page)")!
         }
         
-        // Теперь получаем все подгруппы для каждой группы
+        // Now get all subgroups for each group
         for group in allGroups {
             guard let groupId = group["id"] as? Int,
                   let groupName = group["full_path"] as? String else { continue }
@@ -320,7 +320,7 @@ class RepositoryService {
     var updatedRepos = 0
     var errorRepos = 0
 
-    // Создаем основную директорию профиля
+    // Create main profile directory
     let accountName: String
     if let url = URL(string: profile.url) {
         accountName = url.pathComponents.last ?? profile.name
@@ -340,27 +340,27 @@ class RepositoryService {
     }
 
     for repo in repos {
-        // Определяем тип репозитория и создаем соответствующую структуру папок
+        // Determine repository type and create the appropriate folder structure
         let repoDir: URL
         if repo.owner == accountName {
-            // Личные репозитории — в папку personal
+            // Personal repositories — in personal folder
             let personalDir = profileDir.appendingPathComponent("personal", isDirectory: true)
             try? fileManager.createDirectory(at: personalDir, withIntermediateDirectories: true)
             repoDir = personalDir.appendingPathComponent(repo.name, isDirectory: true)
         } else if repo.owner.contains("/") {
-            // Форки — в forks
+            // Forks — in forks
             let forksDir = profileDir.appendingPathComponent("forks", isDirectory: true)
             try? fileManager.createDirectory(at: forksDir, withIntermediateDirectories: true)
             repoDir = forksDir.appendingPathComponent(repo.name, isDirectory: true)
         } else {
-            // Организации — в папку organisations/[OrganizationName]
+            // Organizations — in organisations/[OrganizationName]
             let orgsRootDir = profileDir.appendingPathComponent("organisations", isDirectory: true)
             let orgDir = orgsRootDir.appendingPathComponent(repo.owner, isDirectory: true)
             try? fileManager.createDirectory(at: orgDir, withIntermediateDirectories: true)
             repoDir = orgDir.appendingPathComponent(repo.name, isDirectory: true)
         }
 
-        // Оборачиваем каждую операцию в do-catch, чтобы при ошибке не прекращать цикл
+        // Wrap each operation in do-catch so that errors do not stop the loop
         do {
             if fileManager.fileExists(atPath: repoDir.path) {
                 // Pull updates
@@ -418,12 +418,12 @@ class RepositoryService {
                 }
             }
         } catch {
-            // На случай неожиданных ошибок (например, не удалось запустить git)
-            progress?("⚠️ Неожиданная ошибка при обработке \(repo.owner)/\(repo.name): \(error)")
+            // For unexpected errors (e.g., failed to launch git)
+            progress?("⚠️ Unexpected error while processing \(repo.owner)/\(repo.name): \(error)")
             errorRepos += 1
         }
     }
-    // После всех операций выводим статистику
+    // After all operations, print summary
     progress?("\nSummary:")
     progress?("  • Total unique projects: \(repos.count)")
     progress?("  • Total repositories in API responses: \(repos.count)")
