@@ -1,5 +1,7 @@
 # Clonner
 
+<img width="1266" alt="Screenshot 2025-06-18 at 23 27 43" src="https://github.com/user-attachments/assets/8b02e807-5244-4262-ad42-9f325b824461" />
+
 Clonner is a macOS application for convenient management and cloning of Git repositories. The app allows you to create profiles for different repository types and easily clone or update them.
 
 ## Features
