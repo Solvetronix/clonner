@@ -111,7 +111,7 @@ class ProfileViewModel: ObservableObject {
                     self.progressMessage = warnMsg
                     self.cloneLog.append(warnMsg)
                 } else {
-                    let successMsg = "✅ Все репозитории успешно склонированы/обновлены."
+                    let successMsg = "✅ All repositories have been successfully cloned/updated."
                     self.progressMessage = successMsg
                     self.cloneLog.append(successMsg)
                 }

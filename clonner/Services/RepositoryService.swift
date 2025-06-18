@@ -66,10 +66,6 @@ class RepositoryService {
             }
         }
         
-        progress?("\n🔵 Итоговая статистика:")
-        progress?("  • Всего найдено уникальных проектов: \(repos.count)")
-        progress?("  • Всего репозиториев в ответах API: \(totalCount)")
-        
         return repos
     }
 
@@ -80,8 +76,6 @@ class RepositoryService {
         var url = URL(string: "https://api.github.com/user/repos?per_page=100")!
         var page = 1
         
-        progress?("🔵 Запрос к GitHub API: user/repos...")
-        
         while true {
             var request = URLRequest(url: url)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -90,7 +84,6 @@ class RepositoryService {
             
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                 let msg = String(data: data, encoding: .utf8) ?? ""
-                progress?("❌ Ошибка GitHub API: \(httpResponse.statusCode) \(msg)")
                 throw RepositoryError.apiError("GitHub API error: \(httpResponse.statusCode) \(msg)")
             }
             
@@ -102,7 +95,6 @@ class RepositoryService {
                       let owner = repo["owner"] as? [String: Any],
                       let ownerLogin = owner["login"] as? String,
                       let cloneURLs = repo["clone_url"] as? String else { continue }
-                progress?("  • Найден проект: \(ownerLogin)/\(name)")
                 repos.append(RepoInfo(owner: ownerLogin, name: name, cloneURL: cloneURLs))
             }
             
@@ -111,10 +103,7 @@ class RepositoryService {
             url = URL(string: "https://api.github.com/user/repos?per_page=100&page=\(page)")!
         }
         
-        progress?("🔵 Найдено личных проектов: \(repos.count)")
-        
         // Fetch org repos
-        progress?("\n🔵 Запрос к GitHub API: user/orgs...")
         let orgsURL = URL(string: "https://api.github.com/user/orgs?per_page=100")!
         var orgsRequest = URLRequest(url: orgsURL)
         orgsRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -123,19 +112,16 @@ class RepositoryService {
         
         if let httpResponse = orgsResponse as? HTTPURLResponse, httpResponse.statusCode != 200 {
             let msg = String(data: orgsData, encoding: .utf8) ?? ""
-            progress?("❌ Ошибка GitHub API (orgs): \(httpResponse.statusCode) \(msg)")
             throw RepositoryError.apiError("GitHub API error (orgs): \(httpResponse.statusCode) \(msg)")
         }
         
         guard let orgs = try? JSONSerialization.jsonObject(with: orgsData) as? [[String: Any]] else {
-            progress?("🔵 Всего найдено проектов: \(repos.count)")
             return repos
         }
         
         var orgReposCount = 0
         for org in orgs {
             guard let orgLogin = org["login"] as? String else { continue }
-            progress?("🔵 Организация: \(orgLogin)")
             var orgReposURL = URL(string: "https://api.github.com/orgs/\(orgLogin)/repos?per_page=100")!
             var orgPage = 1
             
@@ -147,7 +133,6 @@ class RepositoryService {
                 
                 if let httpResponse = orgReposResponse as? HTTPURLResponse, httpResponse.statusCode != 200 {
                     let msg = String(data: orgReposData, encoding: .utf8) ?? ""
-                    progress?("❌ Ошибка GitHub API (org repos): \(httpResponse.statusCode) \(msg)")
                     throw RepositoryError.apiError("GitHub API error (org repos): \(httpResponse.statusCode) \(msg)")
                 }
                 
@@ -158,7 +143,6 @@ class RepositoryService {
                 for repo in orgReposArr {
                     guard let name = repo["name"] as? String,
                           let cloneURLs = repo["clone_url"] as? String else { continue }
-                    progress?("  • Найден проект: \(orgLogin)/\(name)")
                     repos.append(RepoInfo(owner: orgLogin, name: name, cloneURL: cloneURLs))
                 }
                 
@@ -168,7 +152,6 @@ class RepositoryService {
             }
         }
         
-        progress?("🔵 Найдено проектов в организациях: \(orgReposCount)")
         return repos
     }
 
@@ -179,8 +162,6 @@ class RepositoryService {
         let session = URLSession.shared
         let trimmedBase = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
         let apiURL = trimmedBase + "/api/v4"
-        
-        progress?("🔵 Рекурсивный метод: получаем все проекты...")
         
         // Получаем все проекты с include_subgroups=true
         var projectsURL = URL(string: "\(apiURL)/projects?per_page=100&include_subgroups=true")!
@@ -194,7 +175,6 @@ class RepositoryService {
             
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                 let msg = String(data: data, encoding: .utf8) ?? ""
-                progress?("❌ Ошибка GitLab API (projects, recursive): \(httpResponse.statusCode) \(msg)")
                 throw RepositoryError.apiError("GitLab API error (projects, recursive): \(httpResponse.statusCode) \(msg)")
             }
             
@@ -207,21 +187,12 @@ class RepositoryService {
                       let owner = namespace["full_path"] as? String,
                       let cloneURLs = project["http_url_to_repo"] as? String else { continue }
                 
-                progress?("  • [Рекурсивный] Найден проект: \(owner)/\(name)")
                 repos.append(RepoInfo(owner: owner, name: name, cloneURL: cloneURLs))
             }
             
             if projects.count < 100 { break }
             page += 1
             projectsURL = URL(string: "\(apiURL)/projects?per_page=100&include_subgroups=true&page=\(page)")!
-        }
-        
-        progress?("🔵 Всего найдено проектов (рекурсивный): \(repos.count)")
-        if !repos.isEmpty {
-            progress?("\nСписок всех найденных проектов (рекурсивный):")
-            for r in repos {
-                progress?("  • \(r.owner)/\(r.name)")
-            }
         }
         
         return repos
@@ -236,11 +207,9 @@ class RepositoryService {
         
         // Получаем все группы
         let allGroups = try await fetchAllGitLabGroups(token: token, apiURL: apiURL, progress: progress)
-        progress?("🔵 Bash-style: получаем проекты для каждой группы...")
         for group in allGroups {
             guard let groupId = group["id"] as? Int else { continue }
             if let groupName = group["full_path"] as? String {
-                progress?("🔵 [Bash-style] Группа: \(groupName) (id: \(groupId))")
             }
             var groupReposURL = URL(string: "\(apiURL)/groups/\(groupId)/projects?per_page=100")!
             var groupPage = 1
@@ -250,7 +219,6 @@ class RepositoryService {
                 let (groupReposData, groupReposResponse) = try await session.data(for: groupReposRequest)
                 if let httpResponse = groupReposResponse as? HTTPURLResponse, httpResponse.statusCode != 200 {
                     let msg = String(data: groupReposData, encoding: .utf8) ?? ""
-                    progress?("❌ Ошибка GitLab API (group projects, bash-style): \(httpResponse.statusCode) \(msg)")
                     throw RepositoryError.apiError("GitLab API error (group projects, bash-style): \(httpResponse.statusCode) \(msg)")
                 }
                 guard let groupReposArr = try? JSONSerialization.jsonObject(with: groupReposData) as? [[String: Any]] else { break }
@@ -261,19 +229,11 @@ class RepositoryService {
                           let namespace = repo["namespace"] as? [String: Any],
                           let owner = namespace["full_path"] as? String,
                           let cloneURLs = repo["http_url_to_repo"] as? String else { continue }
-                    progress?("  • [Bash-style] Найден проект: \(owner)/\(name)")
                     repos.append(RepoInfo(owner: owner, name: name, cloneURL: cloneURLs))
                 }
                 if groupReposArr.count < 100 { break }
                 groupPage += 1
                 groupReposURL = URL(string: "\(apiURL)/groups/\(groupId)/projects?per_page=100&page=\(groupPage)")!
-            }
-        }
-        progress?("🔵 Всего найдено проектов (bash-style): \(repos.count)")
-        if !repos.isEmpty {
-            progress?("\nСписок всех найденных проектов (bash-style):")
-            for r in repos {
-                progress?("  • \(r.owner)/\(r.name)")
             }
         }
         return repos
@@ -288,8 +248,6 @@ class RepositoryService {
         var groupsURL = URL(string: "\(apiURL)/groups?per_page=100")!
         var page = 1
         
-        progress?("🔵 Получаем все группы GitLab...")
-        
         while true {
             var request = URLRequest(url: groupsURL)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -298,7 +256,6 @@ class RepositoryService {
             
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                 let msg = String(data: data, encoding: .utf8) ?? ""
-                progress?("❌ Ошибка GitLab API (groups): \(httpResponse.statusCode) \(msg)")
                 throw RepositoryError.apiError("GitLab API error (groups): \(httpResponse.statusCode) \(msg)")
             }
             
@@ -306,7 +263,6 @@ class RepositoryService {
             
             for group in groups {
                 if let groupName = group["full_path"] as? String {
-                    progress?("🔵 Найдена группа: \(groupName)")
                 }
                 allGroups.append(group)
             }
@@ -317,7 +273,6 @@ class RepositoryService {
         }
         
         // Теперь получаем все подгруппы для каждой группы
-        progress?("\n🔵 Получаем все подгруппы...")
         for group in allGroups {
             guard let groupId = group["id"] as? Int,
                   let groupName = group["full_path"] as? String else { continue }
@@ -333,7 +288,6 @@ class RepositoryService {
                 
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                     let msg = String(data: data, encoding: .utf8) ?? ""
-                    progress?("❌ Ошибка GitLab API (subgroups for \(groupName)): \(httpResponse.statusCode) \(msg)")
                     throw RepositoryError.apiError("GitLab API error (subgroups): \(httpResponse.statusCode) \(msg)")
                 }
                 
@@ -341,7 +295,6 @@ class RepositoryService {
                 
                 for subgroup in subgroups {
                     if let subgroupName = subgroup["full_path"] as? String {
-                        progress?("🔵 Найдена подгруппа: \(subgroupName)")
                     }
                     allGroups.append(subgroup)
                 }
@@ -352,22 +305,20 @@ class RepositoryService {
             }
         }
         
-        progress?("\n🔵 Всего найдено групп и подгрупп: \(allGroups.count)")
-        progress?("Список всех найденных групп:")
-        for group in allGroups {
-            if let name = group["full_path"] as? String {
-                progress?("  • \(name)")
-            }
-        }
-        
         return allGroups
     }
 
   static func cloneOrUpdateAllRepositories(for profile: Profile, to baseDirectory: URL, progress: ((String) -> Void)? = nil) async throws {
+    var totalCount = 0
     let repos = try await getRepositories(for: profile, progress: progress)
+    totalCount = repos.count
     let fileManager = FileManager.default
     let isGitLab = profile.type == .gitlab
     var domainFolder: String? = nil
+    var newRepos = 0
+    var noChangeRepos = 0
+    var updatedRepos = 0
+    var errorRepos = 0
     if isGitLab {
         if let url = URL(string: profile.url), let host = url.host {
             domainFolder = host
@@ -406,12 +357,16 @@ class RepositoryService {
                 let output = String(data: data, encoding: .utf8) ?? ""
                 if process.terminationStatus != 0 {
                     progress?("❌ Pull failed for \(repo.owner)/\(repo.name):\n" + output)
+                    errorRepos += 1
                 } else if output.contains("Already up to date.") {
                     progress?("[yellow] No changes: \(repo.owner)/\(repo.name)")
+                    noChangeRepos += 1
                 } else if output.contains("Updating") || output.contains("changed") || output.contains("files changed") || output.contains("Fast-forward") {
                     progress?("[blue] Updated: \(repo.owner)/\(repo.name)")
+                    updatedRepos += 1
                 } else {
                     progress?("[yellow] No changes: \(repo.owner)/\(repo.name)")
+                    noChangeRepos += 1
                 }
             } else {
                 // Clone repo
@@ -438,15 +393,27 @@ class RepositoryService {
                 let output = String(data: data, encoding: .utf8) ?? ""
                 if process.terminationStatus != 0 {
                     progress?("❌ Clone failed for \(repo.owner)/\(repo.name):\n" + output)
+                    errorRepos += 1
                 } else {
                     progress?("[green] Cloned: \(repo.owner)/\(repo.name)")
+                    newRepos += 1
                 }
             }
         } catch {
             // На случай неожиданных ошибок (например, не удалось запустить git)
             progress?("⚠️ Неожиданная ошибка при обработке \(repo.owner)/\(repo.name): \(error)")
+            errorRepos += 1
         }
     }
+    // После всех операций выводим статистику
+    progress?("\nSummary:")
+    progress?("  • Total unique projects: \(repos.count)")
+    progress?("  • Total repositories in API responses: \(repos.count)")
+    progress?("  • New repositories cloned: \(newRepos)")
+    progress?("  • Repositories with no changes: \(noChangeRepos)")
+    progress?("  • Repositories updated (pull): \(updatedRepos)")
+    progress?("  • Errors during clone/pull: \(errorRepos)")
+    progress?("")
 }
 
 } 

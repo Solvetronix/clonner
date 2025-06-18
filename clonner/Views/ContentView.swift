@@ -20,6 +20,7 @@ struct ListPanel: View {
     @ObservedObject var viewModel: ProfileViewModel
     @Binding var showingAddProfile: Bool
     @Binding var selectedProfile: Profile?
+    @State private var profileToDelete: Profile? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -60,22 +61,30 @@ struct ListPanel: View {
                     }
                 }
                 TableColumn("") { profile in
-                    Menu {
-                        Button("Edit") { selectedProfile = profile }.disabled(viewModel.isCloning)
-                        Button("Delete", role: .destructive) { viewModel.deleteProfile(profile) }.disabled(viewModel.isCloning)
-                        Button("Clone/Update All Repositories") {
+                    HStack(spacing: 12) {
+                        Button(action: { selectedProfile = profile }) {
+                            HoverableIcon(systemName: "pencil", help: "Edit")
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(viewModel.isCloning)
+                        Button(action: { profileToDelete = profile }) {
+                            HoverableIcon(systemName: "trash", help: "Delete")
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(viewModel.isCloning)
+                        Button(action: {
                             Task { await viewModel.cloneOrUpdateAllRepositories(for: profile) }
-                        }.disabled(viewModel.isCloning)
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .foregroundColor(.secondary)
+                        }) {
+                            HoverableIcon(systemName: "arrow.triangle.2.circlepath", help: "Clone/Update All Repositories")
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(viewModel.isCloning)
                     }
-                    .menuStyle(.borderlessButton)
                 }
             }
             .frame(minHeight: 200)
         }
-        .navigationTitle("clonner 1.0")
+        .navigationTitle("Clonner 1.0")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: { showingAddProfile = true }) {
@@ -89,6 +98,20 @@ struct ListPanel: View {
         .sheet(item: $selectedProfile) { profile in
             ProfileFormView(viewModel: viewModel, editingProfile: profile)
         }
+        .alert("Are you sure you want to delete this profile?", isPresented: Binding<Bool>(
+            get: { profileToDelete != nil },
+            set: { if !$0 { profileToDelete = nil } }
+        ), actions: {
+            Button("Cancel", role: .cancel) { profileToDelete = nil }
+            Button("Delete", role: .destructive) {
+                if let profile = profileToDelete {
+                    viewModel.deleteProfile(profile)
+                    profileToDelete = nil
+                }
+            }
+        }, message: {
+            Text("This action cannot be undone.")
+        })
     }
 }
 
@@ -124,7 +147,7 @@ struct MainLogPanel: View {
             }
             .padding(.horizontal)
             .padding(.top, 8)
-            .padding(.bottom, 16)
+            .padding(.bottom, 6)
             Divider()
             ScrollViewReader { proxy in
                 ScrollView {
@@ -146,9 +169,12 @@ struct MainLogPanel: View {
                                 .foregroundColor(color)
                                 .id(idx)
                                 .textSelection(.enabled)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal)
                         }
                     }
-                    .padding([.horizontal, .bottom])
+                    .padding(.bottom)
                 }
                 .background(Color(NSColor.textBackgroundColor))
                 .onChange(of: viewModel.cloneLog.count) { _ in
@@ -183,6 +209,24 @@ struct ProfileRow: View {
             Text(profile.type.rawValue)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+        }
+    }
+}
+
+struct HoverableIcon: View {
+    let systemName: String
+    let help: String
+    @State private var isHovered = false
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isHovered ? Color.gray.opacity(0.18) : Color.clear)
+                .frame(width: 28, height: 28)
+            Image(systemName: systemName)
+                .help(help)
+        }
+        .onHover { hovering in
+            isHovered = hovering
         }
     }
 }
