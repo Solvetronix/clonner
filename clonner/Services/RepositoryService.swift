@@ -405,10 +405,13 @@ class RepositoryService {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 let output = String(data: data, encoding: .utf8) ?? ""
                 if process.terminationStatus != 0 {
-                    // Логируем ошибку, но не выбрасываем
-                    progress?("❌ Pull failed for \(repo.owner)/\(repo.name):\n\(output)")
+                    progress?("❌ Pull failed for \(repo.owner)/\(repo.name):\n" + output)
+                } else if output.contains("Already up to date.") {
+                    progress?("[yellow] No changes: \(repo.owner)/\(repo.name)")
+                } else if output.contains("Updating") || output.contains("changed") || output.contains("files changed") || output.contains("Fast-forward") {
+                    progress?("[blue] Updated: \(repo.owner)/\(repo.name)")
                 } else {
-                    progress?("✅ Обновлено: \(repo.owner)/\(repo.name)")
+                    progress?("[yellow] No changes: \(repo.owner)/\(repo.name)")
                 }
             } else {
                 // Clone repo
@@ -434,9 +437,9 @@ class RepositoryService {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 let output = String(data: data, encoding: .utf8) ?? ""
                 if process.terminationStatus != 0 {
-                    progress?("❌ Clone failed for \(repo.owner)/\(repo.name):\n\(output)")
+                    progress?("❌ Clone failed for \(repo.owner)/\(repo.name):\n" + output)
                 } else {
-                    progress?("✅ Склонировано: \(repo.owner)/\(repo.name)")
+                    progress?("[green] Cloned: \(repo.owner)/\(repo.name)")
                 }
             }
         } catch {

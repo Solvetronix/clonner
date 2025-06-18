@@ -11,30 +11,6 @@ struct ContentView: View {
                 ListPanel(viewModel: viewModel, showingAddProfile: $showingAddProfile, selectedProfile: $selectedProfile)
                     .disabled(viewModel.isCloning)
                 MainLogPanel(viewModel: viewModel)
-                    .disabled(viewModel.isCloning)
-            }
-            if viewModel.isCloning {
-                Color.black.opacity(0.18)
-                    .ignoresSafeArea()
-                VStack(spacing: 18) {
-                    ProgressView()
-                        .scaleEffect(1.4)
-                        .padding(.bottom, 2)
-                    Text("Cloning in progress...")
-                        .font(.title3.bold())
-                        .padding(.bottom, 2)
-                    if let msg = viewModel.progressMessage {
-                        Text(msg)
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: 340)
-                    }
-                }
-                .padding(32)
-                .background(.regularMaterial)
-                .cornerRadius(18)
-                .shadow(radius: 18)
             }
         }
     }
@@ -58,10 +34,11 @@ struct ListPanel: View {
                 Button(action: { viewModel.pickCloneDirectory() }) {
                     Image(systemName: "folder")
                 }
+                .disabled(viewModel.isCloning)
             }
-            .padding(.top, 5)
+            .padding(.top, 0)
             .padding(.horizontal)
-            .padding(.bottom, 10)
+            .padding(.bottom, 8)
             Table(viewModel.profiles) {
                 TableColumn("Type") { profile in
                     HStack {
@@ -84,11 +61,11 @@ struct ListPanel: View {
                 }
                 TableColumn("") { profile in
                     Menu {
-                        Button("Edit") { selectedProfile = profile }
-                        Button("Delete", role: .destructive) { viewModel.deleteProfile(profile) }
+                        Button("Edit") { selectedProfile = profile }.disabled(viewModel.isCloning)
+                        Button("Delete", role: .destructive) { viewModel.deleteProfile(profile) }.disabled(viewModel.isCloning)
                         Button("Clone/Update All Repositories") {
                             Task { await viewModel.cloneOrUpdateAllRepositories(for: profile) }
-                        }
+                        }.disabled(viewModel.isCloning)
                     } label: {
                         Image(systemName: "ellipsis")
                             .foregroundColor(.secondary)
@@ -103,7 +80,7 @@ struct ListPanel: View {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: { showingAddProfile = true }) {
                     Image(systemName: "plus")
-                }
+                }.disabled(viewModel.isCloning)
             }
         }
         .sheet(isPresented: $showingAddProfile) {
@@ -143,19 +120,30 @@ struct MainLogPanel: View {
                     Image(systemName: "trash")
                 }
                 .help("Clear operation log")
+                .disabled(viewModel.isCloning)
             }
             .padding(.horizontal)
             .padding(.top, 8)
-            .padding(.bottom, 8)
+            .padding(.bottom, 16)
             Divider()
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 4) {
                         ForEach(viewModel.cloneLog.indices, id: \.self) { idx in
                             let msg = viewModel.cloneLog[idx]
-                            Text(msg)
+                            let color: Color =
+                                msg.hasPrefix("[green]") ? .green :
+                                msg.hasPrefix("[yellow]") ? .yellow :
+                                msg.hasPrefix("[blue]") ? .blue :
+                                msg.contains("✅") ? .green :
+                                msg.contains("❌") ? .red : .primary
+                            let cleanMsg = msg
+                                .replacingOccurrences(of: "[green]", with: "")
+                                .replacingOccurrences(of: "[yellow]", with: "")
+                                .replacingOccurrences(of: "[blue]", with: "")
+                            Text(cleanMsg)
                                 .font(.system(size: 13, design: .monospaced))
-                                .foregroundColor(msg.contains("✅") ? .green : (msg.contains("❌") ? .red : .primary))
+                                .foregroundColor(color)
                                 .id(idx)
                                 .textSelection(.enabled)
                         }
