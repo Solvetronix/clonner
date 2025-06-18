@@ -319,6 +319,11 @@ class RepositoryService {
     var noChangeRepos = 0
     var updatedRepos = 0
     var errorRepos = 0
+
+    // Создаем основную директорию профиля
+    let profileDir = baseDirectory.appendingPathComponent(profile.name, isDirectory: true)
+    try? fileManager.createDirectory(at: profileDir, withIntermediateDirectories: true)
+
     if isGitLab {
         if let url = URL(string: profile.url), let host = url.host {
             domainFolder = host
@@ -329,15 +334,22 @@ class RepositoryService {
     }
 
     for repo in repos {
-        let ownerDir: URL
-        if let domain = domainFolder {
-            ownerDir = baseDirectory.appendingPathComponent(domain, isDirectory: true)
-                                  .appendingPathComponent(repo.owner, isDirectory: true)
+        // Определяем тип репозитория и создаем соответствующую структуру папок
+        let repoDir: URL
+        if repo.owner == profile.name {
+            // Если репозиторий принадлежит профилю, кладем его в корневую папку профиля
+            repoDir = profileDir.appendingPathComponent(repo.name, isDirectory: true)
+        } else if repo.owner.contains("/") {
+            // Если это форк (содержит / в имени владельца)
+            let forksDir = profileDir.appendingPathComponent("FORKS", isDirectory: true)
+            try? fileManager.createDirectory(at: forksDir, withIntermediateDirectories: true)
+            repoDir = forksDir.appendingPathComponent(repo.name, isDirectory: true)
         } else {
-            ownerDir = baseDirectory.appendingPathComponent(repo.owner, isDirectory: true)
+            // Если это организация, создаем папку с именем организации
+            let orgDir = profileDir.appendingPathComponent(repo.owner, isDirectory: true)
+            try? fileManager.createDirectory(at: orgDir, withIntermediateDirectories: true)
+            repoDir = orgDir.appendingPathComponent(repo.name, isDirectory: true)
         }
-        let repoDir = ownerDir.appendingPathComponent(repo.name, isDirectory: true)
-        try? fileManager.createDirectory(at: ownerDir, withIntermediateDirectories: true)
 
         // Оборачиваем каждую операцию в do-catch, чтобы при ошибке не прекращать цикл
         do {
@@ -361,12 +373,9 @@ class RepositoryService {
                 } else if output.contains("Already up to date.") {
                     progress?("[yellow] No changes: \(repo.owner)/\(repo.name)")
                     noChangeRepos += 1
-                } else if output.contains("Updating") || output.contains("changed") || output.contains("files changed") || output.contains("Fast-forward") {
+                } else {
                     progress?("[blue] Updated: \(repo.owner)/\(repo.name)")
                     updatedRepos += 1
-                } else {
-                    progress?("[yellow] No changes: \(repo.owner)/\(repo.name)")
-                    noChangeRepos += 1
                 }
             } else {
                 // Clone repo
@@ -375,7 +384,7 @@ class RepositoryService {
                 let pipe = Pipe()
                 process.standardOutput = pipe
                 process.standardError = pipe
-                process.currentDirectoryURL = ownerDir
+                process.currentDirectoryURL = repoDir.deletingLastPathComponent()
                 process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
                 var cloneURL = repo.cloneURL
                 if profile.token != "" && cloneURL.hasPrefix("https://") {
