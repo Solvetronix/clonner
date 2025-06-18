@@ -343,11 +343,13 @@ class RepositoryService {
         // Определяем тип репозитория и создаем соответствующую структуру папок
         let repoDir: URL
         if repo.owner == accountName {
-            // Личные репозитории — прямо в папку профиля
-            repoDir = profileDir.appendingPathComponent(repo.name, isDirectory: true)
+            // Личные репозитории — в папку personal
+            let personalDir = profileDir.appendingPathComponent("personal", isDirectory: true)
+            try? fileManager.createDirectory(at: personalDir, withIntermediateDirectories: true)
+            repoDir = personalDir.appendingPathComponent(repo.name, isDirectory: true)
         } else if repo.owner.contains("/") {
-            // Форки — в FORKS
-            let forksDir = profileDir.appendingPathComponent("FORKS", isDirectory: true)
+            // Форки — в forks
+            let forksDir = profileDir.appendingPathComponent("forks", isDirectory: true)
             try? fileManager.createDirectory(at: forksDir, withIntermediateDirectories: true)
             repoDir = forksDir.appendingPathComponent(repo.name, isDirectory: true)
         } else {
